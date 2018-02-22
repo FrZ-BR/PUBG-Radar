@@ -11,22 +11,22 @@ class Item {
                     "Foregrip" to "grip"),
                 "Magazine" to mapOf(
                     "Extended" to mapOf(
-                        "Large" to "Extended",
-                        "SniperRifle" to "Extended"),
+                        "Large" to "AR_Extended",
+                        "SniperRifle" to "SR_Extended"),
                     "ExtendedQuickDraw" to mapOf(
-                        "Large" to "Extended",
-                        "SniperRifle" to "Extended")),
+                        "Large" to "AR_Extended",
+                        "SniperRifle" to "SR_Extended")),
                 "Muzzle" to mapOf(
                     "Choke" to "Choke",
                     "Compensator" to mapOf(
-                        "Large" to "Compensator",
-                        "SniperRifle" to "Compensator"),
+                        "Large" to "AR_Compensator"),
+                        //"SniperRifle" to "SR_Compensator"),
                     "FlashHider" to mapOf(
-                        "Large" to "FlashHider",
-                        "SniperRifle" to "FlashHider"),
+                        "Large" to "AR_FlashHider",
+                        "SniperRifle" to "SR_FlashHider"),
                     "Suppressor" to mapOf(
-                        "Large" to "Suppressor",
-                        "SniperRifle" to "Suppressor")),
+                        "Large" to "AR_Suppressor",
+                        "SniperRifle" to "SR_Suppressor")),
                 "Stock" to mapOf(
                     "AR" to "AR_Composite",
                     "SniperRifle" to mapOf(
@@ -41,11 +41,14 @@ class Item {
             "MedKit" to "heal"
         ),
         "Weapon" to mapOf(
+            "K98" to "k98",
+            "Kar98" to "k98",
+            "Kar98k" to "k98",
             "HK416" to "m416",
-            "Kar98K" to "98k",
             "SCAR-L" to "scar",
+            "M16A4" to "m16",
             "AK47" to "ak",
-            "SKS" to "sks",
+            "DP28" to "dp28",
             "Grenade" to "grenade"),
         "Ammo" to mapOf(
             "556mm" to "556",

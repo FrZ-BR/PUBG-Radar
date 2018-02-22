@@ -12,9 +12,11 @@ import pubg.radar.util.notify
 import java.io.*
 import java.io.File.separator
 import java.net.Inet4Address
+import java.nio.charset.Charset
 import java.util.*
 import javax.swing.*
 import javax.swing.JOptionPane.*
+// import javax.xml.bind.DatatypeConverter
 import kotlin.collections.ArrayList
 import kotlin.concurrent.thread
 import kotlin.experimental.and
@@ -33,7 +35,8 @@ class DevDesc(val dev: PcapNetworkInterface, val address: Inet4Address) {
 
 enum class SniffOption {
   PortFilter,
-  PPTPFilter
+  PPTPFilter,
+  L2TPFilter
 }
 
 val settingHome = "${System.getProperty("user.home")}$separator.pubgradar"
@@ -96,11 +99,14 @@ class Sniffer {
                                     !found || sniffOption == PortFilter)
       val routeIpFilter = JRadioButton("PPTP tunneling",
                                        found && sniffOption == PPTPFilter)
+      val l2tpFilter = JRadioButton("L2TP protocal", 
+                                    found && sniffOption == L2TPFilter)
       group.add(portFilter)
       group.add(routeIpFilter)
+      group.add(l2tpFilter)
       val netDevs = JComboBox(arrayChoices)
       if (found) netDevs.selectedItem = arrayChoices.firstOrNull { it.dev === nif }
-      val params = arrayOf(msg, netDevs, portFilter, routeIpFilter)
+      val params = arrayOf(msg, netDevs, portFilter, routeIpFilter, l2tpFilter)
       
       val option = showConfirmDialog(null, params, "Network interfaces", OK_CANCEL_OPTION)
       if (option == CANCEL_OPTION)
@@ -117,6 +123,7 @@ class Sniffer {
       when {
         portFilter.isSelected -> sniffOption = PortFilter
         routeIpFilter.isSelected -> sniffOption = PPTPFilter
+        l2tpFilter.isSelected -> sniffOption = L2TPFilter
       }
       
       try {
@@ -175,11 +182,29 @@ class Sniffer {
       val pppPkt = PppSelector.newPacket(raw, i, raw.size - i)
       return pppPkt.payload
     }
+
+    fun parseL2TPPacket(raw: ByteArray): Packet? {
+      // println(DatatypeConverter.printHexBinary(raw)+"  raw:"+raw.toString(Charset.defaultCharset()));
+      var i = 0
+      //control message return
+      val isControl = (raw[i] and 0b1000_0000.toByte()) != 0.toByte()
+      if(isControl){
+        return null;
+      }
+      val hasLength = (raw[i] and 0b0100_0000.toByte()) != 0.toByte()
+      if(!hasLength){
+        return null;
+      }
+      i+=8;
+      val pppPkt = PppSelector.newPacket(raw, i, raw.size - i)
+      return pppPkt.payload
+    }
     
     fun udp_payload(packet: Packet): UdpPacket? {
       return when (sniffOption) {
         PortFilter -> packet
         PPTPFilter -> parsePPTPGRE(packet[IpV4Packet::class.java].payload.rawData)
+        L2TPFilter -> parseL2TPPacket(packet[UdpPacket::class.java].payload.rawData)
         
       }?.get(UdpPacket::class.java)
     }
@@ -189,6 +214,7 @@ class Sniffer {
       val filter = when (sniffOption) {
         PortFilter -> "udp src portrange 7000-8999 or udp[4:2] = 52"
         PPTPFilter -> "ip[9]=47"
+        L2TPFilter -> "udp"
       }
       handle.setFilter(filter, OPTIMIZE)
       thread(isDaemon = true) {
@@ -198,11 +224,15 @@ class Sniffer {
             val ip = packet[IpPacket::class.java]
             val udp = udp_payload(packet) ?: return@loop
             val raw = udp.payload.rawData
-            if (ip.header.srcAddr == localAddr) {
-              if (raw.size == 44)
-                parseSelfLocation(raw)
-            } else if (udp.header.srcPort.valueAsInt() in 7000..7999)
+            
+            //Add a check here to compare the ip.header.srcAddr with your gaming pc (The one running the game),
+            //but for now this will work fine (TESTED)
+            if(raw.size == 44){
+              parseSelfLocation(raw)
+            } else if (udp.header.srcPort.valueAsInt() in 7000..7999){
               proc_raw_packet(raw)
+            }
+            
           } catch (e: Exception) {
           }
         }
