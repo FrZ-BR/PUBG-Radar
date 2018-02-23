@@ -63,6 +63,7 @@ val drinkItemColor = Color(0.20f, 0.63f, 0.20f, 0.99f)  //limeGreen
 
 val sightColor = Color(1f, 1f, 1f, 0.5f)
 
+val compaseColor = Color(0f, 0.95f, 1f, 1f)  //Turquoise1
 val aimLineColor = Color(0f, 0f, 1f, 1f)
 val attackLineColor = Color(1.0f, 0f, 0f, 1f)
 val pinColor = Color(1f, 1f, 0f, 1f)

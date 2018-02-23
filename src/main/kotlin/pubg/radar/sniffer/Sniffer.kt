@@ -227,10 +227,10 @@ class Sniffer {
             
             //Add a check here to compare the ip.header.srcAddr with your gaming pc (The one running the game),
             //but for now this will work fine (TESTED)
-            if(raw.size == 44){
-              parseSelfLocation(raw)
+            if(raw.size == 44) {
+                parseSelfLocation(raw)
             } else if (udp.header.srcPort.valueAsInt() in 7000..7999){
-              proc_raw_packet(raw)
+                proc_raw_packet(raw)
             }
             
           } catch (e: Exception) {

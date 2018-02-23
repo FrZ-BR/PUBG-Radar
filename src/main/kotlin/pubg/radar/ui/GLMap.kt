@@ -82,7 +82,7 @@ class GLMap: InputAdapter(), ApplicationListener, GameListener {
   }
   
   override fun onGameOver() {
-    camera.zoom = 1 / 10f
+    camera.zoom = 1 / 4f
     
     aimStartTime.clear()
     attackLineStartTime.clear()
@@ -113,6 +113,8 @@ class GLMap: InputAdapter(), ApplicationListener, GameListener {
   lateinit var littleFontShadow: BitmapFont
   lateinit var nameFont: BitmapFont
   lateinit var nameFontShadow: BitmapFont
+  lateinit var compaseFont: BitmapFont
+  lateinit var compaseFontShadow: BitmapFont
   lateinit var fontCamera: OrthographicCamera
   lateinit var camera: OrthographicCamera
   lateinit var alarmSound: Sound
@@ -163,7 +165,7 @@ class GLMap: InputAdapter(), ApplicationListener, GameListener {
     camera = OrthographicCamera(windowWidth, windowHeight)
     with(camera) {
       setToOrtho(true, windowWidth * windowToMapUnit, windowHeight * windowToMapUnit)
-      zoom = 1 / 10f
+      zoom = 1 / 4f
       update()
       position.set(mapWidth / 2, mapWidth / 2, 0f)
       update()
@@ -203,6 +205,12 @@ class GLMap: InputAdapter(), ApplicationListener, GameListener {
     paramNumber.color = Color(0f, 0f, 0f, 0.5f) 
     largeFontShadow = generatorNumber.generateFont(paramNumber)
 
+    paramNumber.color = compaseColor
+    paramNumber.size = 14
+    compaseFont = generatorNumber.generateFont(paramNumber)
+    paramNumber.color = Color(0f, 0f, 0f, 0.5f) 
+    compaseFontShadow = generatorNumber.generateFont(paramNumber)
+
     val generator = FreeTypeFontGenerator(Gdx.files.internal("GOTHICB.TTF"))
     val param = FreeTypeFontParameter()
     param.characters = DEFAULT_CHARS
@@ -211,11 +219,13 @@ class GLMap: InputAdapter(), ApplicationListener, GameListener {
     littleFont = generator.generateFont(param)
     param.color = Color(0f, 0f, 0f, 0.5f) 
     littleFontShadow = generator.generateFont(param)
+
     param.color = Color(0.9f, 0.9f, 0.9f, 1f) 
     param.size = 11
     nameFont = generator.generateFont(param)
     param.color = Color(0f, 0f, 0f, 0.5f) 
     nameFontShadow = generator.generateFont(param)
+
     generator.dispose()
     
   }
@@ -301,9 +311,11 @@ class GLMap: InputAdapter(), ApplicationListener, GameListener {
       for(i in -1..1)
         for(j in -1..1)
           largeFontShadow.draw(spriteBatch, "$NumAlivePlayers/$NumAliveTeams\n" +
-                                  "${MatchElapsedMinutes}min", 10f + i, windowHeight - 10f + j)
+                                  "${MatchElapsedMinutes}mins\n" +
+                                  "${TotalWarningDuration.toInt()-ElapsedWarningDuration.toInt()}\n", 10f + i, windowHeight - 10f + j)
       largeFont.draw(spriteBatch, "$NumAlivePlayers/$NumAliveTeams\n" +
-                                  "${MatchElapsedMinutes}min", 10f, windowHeight - 10f)
+                                  "${MatchElapsedMinutes}mins\n" +
+                                  "${TotalWarningDuration.toInt()-ElapsedWarningDuration.toInt()}\n", 10f, windowHeight - 10f)
       val time = (pinLocation.cpy().sub(selfX, selfY).len() / runSpeed).toInt()
       val pinDistance = (pinLocation.cpy().sub(selfX, selfY).len() / 100).toInt()
       val (x, y) = pinLocation.mapToWindow()
@@ -313,6 +325,26 @@ class GLMap: InputAdapter(), ApplicationListener, GameListener {
       littleFont.draw(spriteBatch, "$pinDistance", x, windowHeight - y)
       safeZoneHint()
       drawPlayerInfos(typeLocation[Player])
+      for(i in -1..1) {
+          for(j in -1..1) {
+            compaseFontShadow.draw(spriteBatch, "0"  , windowWidth/2 + i, windowHeight/2 + 150 + j)        // N
+            compaseFontShadow.draw(spriteBatch, "45" , windowWidth/2 + 150 + i, windowHeight/2 + 150 + j)  // NE
+            compaseFontShadow.draw(spriteBatch, "90" , windowWidth/2 + 150 + i, windowHeight/2 + j)        // E
+            compaseFontShadow.draw(spriteBatch, "135", windowWidth/2 + 150 + i, windowHeight/2 - 150 + j)  // SE
+            compaseFontShadow.draw(spriteBatch, "180", windowWidth/2 + i, windowHeight/2 - 150 + j)        // S
+            compaseFontShadow.draw(spriteBatch, "225", windowWidth/2 - 150 + i, windowHeight/2 - 150+ j)   // SW
+            compaseFontShadow.draw(spriteBatch, "270", windowWidth/2 - 150 + i, windowHeight/2 + j)        // W
+            compaseFontShadow.draw(spriteBatch, "315", windowWidth/2 - 150 + i, windowHeight/2 + 150+ j)   // NW
+          }
+      }
+      compaseFont.draw(spriteBatch, "0"  , windowWidth/2, windowHeight/2 + 150)        // N
+      compaseFont.draw(spriteBatch, "45" , windowWidth/2 + 150, windowHeight/2 + 150)  // NE
+      compaseFont.draw(spriteBatch, "90" , windowWidth/2 + 150, windowHeight/2)        // E
+      compaseFont.draw(spriteBatch, "135", windowWidth/2 + 150, windowHeight/2 - 150)  // SE
+      compaseFont.draw(spriteBatch, "180", windowWidth/2, windowHeight/2 - 150)        // S
+      compaseFont.draw(spriteBatch, "225", windowWidth/2 - 150, windowHeight/2 - 150)  // SW
+      compaseFont.draw(spriteBatch, "270", windowWidth/2 - 150, windowHeight/2)        // W
+      compaseFont.draw(spriteBatch, "315", windowWidth/2 - 150, windowHeight/2 + 150)  // NW
     }
     
     val zoom = camera.zoom
@@ -532,33 +564,6 @@ class GLMap: InputAdapter(), ApplicationListener, GameListener {
                   else -> normalItemColor
                 })
 
-          /*
-          val rare = when (finalColor) {
-            rareSniperColor, rareRifle556Color, rareRifle762Color, rareMagazineColor, rareAttachColor, rareBagColor, rareHelmetColor, rareArmorColor, rare4xColor, rare8xColor, healItemColor, drinkItemColor  -> rect
-            rareSniperColor, rareRifle556Color, rareRifle762Color, rareMagazineColor, rareAttachColor, rareBagColor, rareHelmetColor, rareArmorColor, rare4xColor, rare8xColor, healItemColor, drinkItemColor  -> circle
-            rareSniperColor, rareRifle556Color, rareRifle762Color, rareMagazineColor, rareAttachColor, rareBagColor, rareHelmetColor, rareArmorColor, rare4xColor, rare8xColor, healItemColor, drinkItemColor  -> triangle
-            else -> false
-          }
-          val backgroundRadius = (itemRadius + 50f)
-          val radius = itemRadius
-          val triBackRadius = backgroundRadius
-          val triRadius = radius
-
-          if (rare) {
-            color = BLACK
-            rect(x - backgroundRadius, y - backgroundRadius, backgroundRadius * 2, backgroundRadius * 2)
-            color = finalColor
-            rect(x - radius, y - radius, radius * 2, radius * 2)
-          } else {
-            color = BLACK
-            
-            circle(x, y, backgroundRadius, 10)
-            color = finalColor
-            circle(x, y, radius, 10)
-            
-          }
-          */
-
           val backgroundRadius = (itemRadius + 50f)
           val radius = itemRadius
           val triBackRadius = backgroundRadius * 1.2f
@@ -584,8 +589,8 @@ class GLMap: InputAdapter(), ApplicationListener, GameListener {
                     x - triRadius, y + triRadius,
                     x + triRadius, y - triRadius)
           }else {
-            color = BLACK
             /*
+            color = BLACK
             circle(x, y, backgroundRadius, 10)
             color = finalColor
             circle(x, y, radius, 10)
@@ -607,16 +612,16 @@ class GLMap: InputAdapter(), ApplicationListener, GameListener {
       if (completedPlayerInfo.containsKey(name)) {
         val info = completedPlayerInfo[name]!!
         //val desc = "$name($numKills)\n${info.win}/${info.totalPlayed}\n${info.roundMostKill}-${info.killDeathRatio.d(2)}/${info.headshotKillRatio.d(2)}\n$teamNumber"
-        val desc = "$teamNumber($numKills)\n${info.killDeathRatio.d(2)} / ${info.killDeathRatio.d(2)}"
+        val desc = "$teamNumber($numKills)\n${info.killDeathRatio.d(2)} / ${info.headshotKillRatio.d(2)}"
         for(i in -1..1)
           for(j in -1..1)
-            nameFontShadow.draw(spriteBatch, desc, sx + 2 + i, windowHeight - sy - 4 + j)
-        nameFont.draw(spriteBatch, desc, sx + 2, windowHeight - sy - 4)
+            nameFontShadow.draw(spriteBatch, desc, sx + 2 + i, windowHeight - sy - 6 + j)
+        nameFont.draw(spriteBatch, desc, sx + 2, windowHeight - sy - 6)
       } else {
         for(i in -1..1)
           for(j in -1..1)
-            nameFontShadow.draw(spriteBatch, "$teamNumber($numKills)", sx + 2 + i, windowHeight - sy - 4 + j)
-        nameFont.draw(spriteBatch, "$teamNumber($numKills)", sx + 2, windowHeight - sy - 4)
+            nameFontShadow.draw(spriteBatch, "$teamNumber($numKills)", sx + 2 + i, windowHeight - sy - 6 + j)
+        nameFont.draw(spriteBatch, "$teamNumber($numKills)", sx + 2, windowHeight - sy - 6)
       }
     }
     
@@ -781,6 +786,8 @@ class GLMap: InputAdapter(), ApplicationListener, GameListener {
     largeFontShadow.dispose()
     littleFont.dispose()
     littleFontShadow.dispose()
+    compaseFont.dispose()
+    compaseFontShadow.dispose()
     //mapErangel.dispose()
     //mapMiramar.dispose()
     var cur = 0
