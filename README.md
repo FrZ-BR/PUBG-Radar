@@ -1,9 +1,20 @@
 # PUBG-Radar
 ![alt text](https://i.imgur.com/ccCc5u5.png)
 
-PUBG-Radar by sniffering udp packet
+![alt text](https://i.imgur.com/EyRE5j7.png)
 
-Written in Kotlin
+Thanks to [@AiYinZiLeGong](https://github.com/AiYinZiLeGong).
+
+I'm not a prof programmer, feel free to optimize my shitty code.
+
+I prefer the neat shapes icons. If you like item icons, you can try [@PubgKnow](https://github.com/PubgKnown) [@Jerry1211](https://github.com/Jerry1211) or [@SamuelNZ](https://github.com/SamuelNZ)'s fork.
+
+# Note
+Issue: Can't remove icons after item be colloected.
+
+Issue: Player sight is the move direction.
+
+Issue: Item ESP filter have some logic problems.
 
 # Build
 Using [maven](https://maven.apache.org/)
