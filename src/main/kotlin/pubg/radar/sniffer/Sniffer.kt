@@ -241,7 +241,7 @@ class Sniffer {
     
     fun sniffLocationOffline(): Thread {
       return thread(isDaemon = true) {
-        val files = arrayOf("d:\\test13.pcap")
+        val files = arrayOf("C:\\Misc\\pubg.pcap")
         for (file in files) {
           val handle = Pcaps.openOffline(file)
           
@@ -251,8 +251,7 @@ class Sniffer {
               val ip = packet[IpPacket::class.java]
               val udp = udp_payload(packet) ?: continue
               val raw = udp.payload.rawData
-              if (ip.header.srcAddr == localAddr) {
-                if (raw.size == 44)
+              if (raw.size == 44) {
                   parseSelfLocation(raw)
               } else if (udp.header.srcPort.valueAsInt() in 7000..7999)
                 proc_raw_packet(raw)

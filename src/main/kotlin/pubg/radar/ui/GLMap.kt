@@ -4,6 +4,10 @@ import com.badlogic.gdx.*
 import com.badlogic.gdx.Input.Buttons.LEFT
 import com.badlogic.gdx.Input.Buttons.MIDDLE
 import com.badlogic.gdx.Input.Buttons.RIGHT
+import com.badlogic.gdx.Input.Keys.NUM_1
+import com.badlogic.gdx.Input.Keys.NUM_2
+import com.badlogic.gdx.Input.Keys.NUM_3
+import com.badlogic.gdx.Input.Keys.NUM_4
 import com.badlogic.gdx.audio.Sound
 import com.badlogic.gdx.backends.lwjgl3.*
 import com.badlogic.gdx.graphics.*
@@ -92,7 +96,8 @@ class GLMap: InputAdapter(), ApplicationListener, GameListener {
   fun show() {
     val config = Lwjgl3ApplicationConfiguration()
     config.setTitle("[${localAddr.hostAddress} ${sniffOption.name}] - PUBG Radar")
-    config.useOpenGL3(true, 3, 3)
+    //config.useOpenGL3(true, 3, 3)
+    config.useOpenGL3(false, 3, 2)
     config.setWindowedMode(600, 600)
     config.setResizable(true)
     config.setBackBufferConfig(8, 8, 8, 8, 32, 0, 8)
@@ -107,14 +112,20 @@ class GLMap: InputAdapter(), ApplicationListener, GameListener {
   lateinit var mapMiramarTiles: MutableMap<String, MutableMap<String, MutableMap<String, Texture>>>
   lateinit var mapTiles: MutableMap<String, MutableMap<String, MutableMap<String, Texture>>>
   //lateinit var map: Texture
+  lateinit var hub_panel: Texture
+  lateinit var hub_panel_blank: Texture
   lateinit var largeFont: BitmapFont
   lateinit var largeFontShadow: BitmapFont
   lateinit var littleFont: BitmapFont
   lateinit var littleFontShadow: BitmapFont
   lateinit var nameFont: BitmapFont
   lateinit var nameFontShadow: BitmapFont
-  lateinit var compaseFont: BitmapFont
-  lateinit var compaseFontShadow: BitmapFont
+  lateinit var compassFont: BitmapFont
+  lateinit var compassFontShadow: BitmapFont
+  lateinit var hubFont: BitmapFont
+  lateinit var hubFontShadow: BitmapFont
+  lateinit var espFont: BitmapFont
+  lateinit var espFontShadow: BitmapFont
   lateinit var fontCamera: OrthographicCamera
   lateinit var camera: OrthographicCamera
   lateinit var alarmSound: Sound
@@ -130,6 +141,12 @@ class GLMap: InputAdapter(), ApplicationListener, GameListener {
   val aimStartTime = HashMap<NetworkGUID, Long>()
   val attackLineStartTime = LinkedList<Triple<NetworkGUID, NetworkGUID, Long>>()
   val pinLocation = Vector2()
+
+  var filterWeapon = 1
+  var filterAttach = -1
+  var filterLvl2 = -1
+  var filterScope = -1
+
   
   fun Vector2.windowToMap() =
       Vector2(selfCoords.x + (x - windowWidth / 2.0f) * camera.zoom * windowToMapUnit,
@@ -157,6 +174,19 @@ class GLMap: InputAdapter(), ApplicationListener, GameListener {
     }
     return false
   }
+
+  override fun keyDown(keycode: Int): Boolean {
+    if (keycode == NUM_1) {
+      filterWeapon = filterWeapon * -1
+    } else if (keycode == NUM_2) {
+      filterAttach = filterAttach * -1
+    } else if (keycode == NUM_3) {
+      filterLvl2 = filterLvl2 * -1
+    } else if (keycode == NUM_4) {
+      filterScope = filterScope * -1
+    }
+    return false
+  }
   
   override fun create() {
     spriteBatch = SpriteBatch()
@@ -172,7 +202,9 @@ class GLMap: InputAdapter(), ApplicationListener, GameListener {
     }
     
     fontCamera = OrthographicCamera(initialWindowWidth, initialWindowWidth)
-    alarmSound = Gdx.audio.newSound(Gdx.files.internal("Alarm.wav"))
+    alarmSound = Gdx.audio.newSound(Gdx.files.internal("sounds/Alarm.wav"))
+    hub_panel = Texture(Gdx.files.internal("images/hub_panel.png"))
+    hub_panel_blank = Texture(Gdx.files.internal("images/hub_panel_blank.png"))
     //mapErangel = Texture(Gdx.files.internal("Erangel.bmp"))
     //mapMiramar = Texture(Gdx.files.internal("Miramar.bmp"))
     //map = mapErangel
@@ -195,8 +227,22 @@ class GLMap: InputAdapter(), ApplicationListener, GameListener {
         cur++
     }
     mapTiles = mapErangelTiles
+
+    val generatorHub = FreeTypeFontGenerator(Gdx.files.internal("font/AGENCYFB.TTF"))
+    val paramHub = FreeTypeFontParameter()
+    paramHub.characters = DEFAULT_CHARS
+    paramHub.size = 30
+    paramHub.color = WHITE
+    hubFont = generatorHub.generateFont(paramHub)
+    paramHub.color = Color(1f, 1f, 1f, 0.4f) 
+    hubFontShadow = generatorHub.generateFont(paramHub)
+    paramHub.size = 16
+    paramHub.color = WHITE
+    espFont = generatorHub.generateFont(paramHub)
+    paramHub.color = Color(1f, 1f, 1f, 0.2f) 
+    espFontShadow = generatorHub.generateFont(paramHub)
     
-    val generatorNumber = FreeTypeFontGenerator(Gdx.files.internal("NUMBER.TTF"))
+    val generatorNumber = FreeTypeFontGenerator(Gdx.files.internal("font/NUMBER.TTF"))
     val paramNumber = FreeTypeFontParameter()
     paramNumber.characters = DEFAULT_CHARS
     paramNumber.size = 24
@@ -204,14 +250,13 @@ class GLMap: InputAdapter(), ApplicationListener, GameListener {
     largeFont = generatorNumber.generateFont(paramNumber)
     paramNumber.color = Color(0f, 0f, 0f, 0.5f) 
     largeFontShadow = generatorNumber.generateFont(paramNumber)
-
-    paramNumber.color = compaseColor
     paramNumber.size = 14
-    compaseFont = generatorNumber.generateFont(paramNumber)
+    paramNumber.color = compassColor
+    compassFont = generatorNumber.generateFont(paramNumber)
     paramNumber.color = Color(0f, 0f, 0f, 0.5f) 
-    compaseFontShadow = generatorNumber.generateFont(paramNumber)
+    compassFontShadow = generatorNumber.generateFont(paramNumber)
 
-    val generator = FreeTypeFontGenerator(Gdx.files.internal("GOTHICB.TTF"))
+    val generator = FreeTypeFontGenerator(Gdx.files.internal("font/GOTHICB.TTF"))
     val param = FreeTypeFontParameter()
     param.characters = DEFAULT_CHARS
     param.size = 20
@@ -219,15 +264,15 @@ class GLMap: InputAdapter(), ApplicationListener, GameListener {
     littleFont = generator.generateFont(param)
     param.color = Color(0f, 0f, 0f, 0.5f) 
     littleFontShadow = generator.generateFont(param)
-
-    param.color = Color(0.9f, 0.9f, 0.9f, 1f) 
     param.size = 11
+    param.color = Color(0.9f, 0.9f, 0.9f, 1f) 
     nameFont = generator.generateFont(param)
     param.color = Color(0f, 0f, 0f, 0.5f) 
     nameFontShadow = generator.generateFont(param)
 
-    generator.dispose()
-    
+    generatorHub.dispose()
+    generatorNumber.dispose()
+    generator.dispose()    
   }
   
   val dirUnitVector = Vector2(1f, 0f)
@@ -308,43 +353,81 @@ class GLMap: InputAdapter(), ApplicationListener, GameListener {
       }
     
     paint(fontCamera.combined) {
-      for(i in -1..1)
-        for(j in -1..1)
-          largeFontShadow.draw(spriteBatch, "$NumAlivePlayers/$NumAliveTeams\n" +
-                                  "${MatchElapsedMinutes}mins\n" +
-                                  "${TotalWarningDuration.toInt()-ElapsedWarningDuration.toInt()}\n", 10f + i, windowHeight - 10f + j)
-      largeFont.draw(spriteBatch, "$NumAlivePlayers/$NumAliveTeams\n" +
-                                  "${MatchElapsedMinutes}mins\n" +
-                                  "${TotalWarningDuration.toInt()-ElapsedWarningDuration.toInt()}\n", 10f, windowHeight - 10f)
+      
+      // NUMBER PANEL
+      val numText = "$NumAlivePlayers"
+      layout.setText(hubFont, numText)
+      spriteBatch.draw(hub_panel, windowWidth - 130f, windowHeight - 60f)
+      hubFontShadow.draw(spriteBatch, "ALIVE", windowWidth - 85f, windowHeight - 29f)
+      hubFont.draw(spriteBatch, "$NumAlivePlayers", windowWidth - 110f - layout.width /2, windowHeight - 29f)
+
+      val teamText = "$NumAliveTeams"
+      layout.setText(hubFont, teamText)
+      spriteBatch.draw(hub_panel, windowWidth - 260f, windowHeight - 60f)
+      hubFontShadow.draw(spriteBatch, "TEAM", windowWidth - 215f, windowHeight - 29f)
+      hubFont.draw(spriteBatch, "$NumAliveTeams", windowWidth - 240f - layout.width /2, windowHeight - 29f)
+
+      val timeText = "${TotalWarningDuration.toInt()-ElapsedWarningDuration.toInt()}"
+      layout.setText(hubFont, timeText)
+      spriteBatch.draw(hub_panel, windowWidth - 390f, windowHeight - 60f)
+      hubFontShadow.draw(spriteBatch, "SECS", windowWidth - 345f, windowHeight - 29f)
+      hubFont.draw(spriteBatch, "${TotalWarningDuration.toInt()-ElapsedWarningDuration.toInt()}", windowWidth - 370f - layout.width /2, windowHeight - 29f)
+
+      // ITEM ESP FILTER PANEL
+      spriteBatch.draw(hub_panel_blank, 30f, windowHeight - 60f)
+      
+      if (filterWeapon == 1) 
+        espFont.draw(spriteBatch, "WEAPON", 37f, windowHeight - 25f)
+      else
+        espFontShadow.draw(spriteBatch, "WEAPON", 37f, windowHeight - 25f)
+      
+      if (filterAttach == 1) 
+        espFont.draw(spriteBatch, "ATTACH", 37f, windowHeight - 42f)
+      else
+        espFontShadow.draw(spriteBatch, "ATTACH", 37f, windowHeight - 42f)
+      
+      if (filterLvl2 == 1) 
+        espFont.draw(spriteBatch, "EQUIP", 92f, windowHeight - 25f)
+      else
+        espFontShadow.draw(spriteBatch, "EQUIP", 92f, windowHeight - 25f)
+      
+      if (filterScope == 1) 
+        espFont.draw(spriteBatch, "SCOPE", 92f, windowHeight - 42f)
+      else
+        espFontShadow.draw(spriteBatch, "SCOPE", 92f, windowHeight - 42f)
+      
+
       val time = (pinLocation.cpy().sub(selfX, selfY).len() / runSpeed).toInt()
       val pinDistance = (pinLocation.cpy().sub(selfX, selfY).len() / 100).toInt()
       val (x, y) = pinLocation.mapToWindow()
-      for(i in -1..1)
-        for(j in -1..1)
-          littleFontShadow.draw(spriteBatch, "$pinDistance", x + i, windowHeight - y + j)
-      littleFont.draw(spriteBatch, "$pinDistance", x, windowHeight - y)
+      
       safeZoneHint()
       drawPlayerInfos(typeLocation[Player])
+      val profileText = "Weapon: ${filterWeapon}"
+      layout.setText(compassFontShadow, profileText)
+
       for(i in -1..1) {
           for(j in -1..1) {
-            compaseFontShadow.draw(spriteBatch, "0"  , windowWidth/2 + i, windowHeight/2 + 150 + j)        // N
-            compaseFontShadow.draw(spriteBatch, "45" , windowWidth/2 + 150 + i, windowHeight/2 + 150 + j)  // NE
-            compaseFontShadow.draw(spriteBatch, "90" , windowWidth/2 + 150 + i, windowHeight/2 + j)        // E
-            compaseFontShadow.draw(spriteBatch, "135", windowWidth/2 + 150 + i, windowHeight/2 - 150 + j)  // SE
-            compaseFontShadow.draw(spriteBatch, "180", windowWidth/2 + i, windowHeight/2 - 150 + j)        // S
-            compaseFontShadow.draw(spriteBatch, "225", windowWidth/2 - 150 + i, windowHeight/2 - 150+ j)   // SW
-            compaseFontShadow.draw(spriteBatch, "270", windowWidth/2 - 150 + i, windowHeight/2 + j)        // W
-            compaseFontShadow.draw(spriteBatch, "315", windowWidth/2 - 150 + i, windowHeight/2 + 150+ j)   // NW
+            compassFontShadow.draw(spriteBatch, "0"  , windowWidth/2 + i, windowHeight/2 + 150 + j)        // N
+            compassFontShadow.draw(spriteBatch, "45" , windowWidth/2 + 150 + i, windowHeight/2 + 150 + j)  // NE
+            compassFontShadow.draw(spriteBatch, "90" , windowWidth/2 + 150 + i, windowHeight/2 + j)        // E
+            compassFontShadow.draw(spriteBatch, "135", windowWidth/2 + 150 + i, windowHeight/2 - 150 + j)  // SE
+            compassFontShadow.draw(spriteBatch, "180", windowWidth/2 + i, windowHeight/2 - 150 + j)        // S
+            compassFontShadow.draw(spriteBatch, "225", windowWidth/2 - 150 + i, windowHeight/2 - 150+ j)   // SW
+            compassFontShadow.draw(spriteBatch, "270", windowWidth/2 - 150 + i, windowHeight/2 + j)        // W
+            compassFontShadow.draw(spriteBatch, "315", windowWidth/2 - 150 + i, windowHeight/2 + 150+ j)   // NW
+            littleFontShadow.draw(spriteBatch, "$pinDistance", x + i, windowHeight - y + j)
           }
       }
-      compaseFont.draw(spriteBatch, "0"  , windowWidth/2, windowHeight/2 + 150)        // N
-      compaseFont.draw(spriteBatch, "45" , windowWidth/2 + 150, windowHeight/2 + 150)  // NE
-      compaseFont.draw(spriteBatch, "90" , windowWidth/2 + 150, windowHeight/2)        // E
-      compaseFont.draw(spriteBatch, "135", windowWidth/2 + 150, windowHeight/2 - 150)  // SE
-      compaseFont.draw(spriteBatch, "180", windowWidth/2, windowHeight/2 - 150)        // S
-      compaseFont.draw(spriteBatch, "225", windowWidth/2 - 150, windowHeight/2 - 150)  // SW
-      compaseFont.draw(spriteBatch, "270", windowWidth/2 - 150, windowHeight/2)        // W
-      compaseFont.draw(spriteBatch, "315", windowWidth/2 - 150, windowHeight/2 + 150)  // NW
+      compassFont.draw(spriteBatch, "0"  , windowWidth/2, windowHeight/2 + 150)        // N
+      compassFont.draw(spriteBatch, "45" , windowWidth/2 + 150, windowHeight/2 + 150)  // NE
+      compassFont.draw(spriteBatch, "90" , windowWidth/2 + 150, windowHeight/2)        // E
+      compassFont.draw(spriteBatch, "135", windowWidth/2 + 150, windowHeight/2 - 150)  // SE
+      compassFont.draw(spriteBatch, "180", windowWidth/2, windowHeight/2 - 150)        // S
+      compassFont.draw(spriteBatch, "225", windowWidth/2 - 150, windowHeight/2 - 150)  // SW
+      compassFont.draw(spriteBatch, "270", windowWidth/2 - 150, windowHeight/2)        // W
+      compassFont.draw(spriteBatch, "315", windowWidth/2 - 150, windowHeight/2 + 150)  // NW
+      littleFont.draw(spriteBatch, "$pinDistance", x, windowHeight - y)
     }
     
     val zoom = camera.zoom
@@ -422,7 +505,7 @@ class GLMap: InputAdapter(), ApplicationListener, GameListener {
       }
     }
   }
-  
+
   private fun drawCircles() {
     Gdx.gl.glLineWidth(2f)
     draw(Line) {
@@ -459,9 +542,10 @@ class GLMap: InputAdapter(), ApplicationListener, GameListener {
         rectLine(0f, i * unit, gridWidth, i * unit, 500f)
         rectLine(i * unit, 0f, i * unit, gridWidth, 500f)
       }
+
     }
   }
-  
+
   private fun ShapeRenderer.drawAPawn(typeLocation: EnumMap<Archetype, MutableList<renderInfo>>,
                                       selfX: Float, selfY: Float,
                                       zoom: Float,
@@ -541,45 +625,86 @@ class GLMap: InputAdapter(), ApplicationListener, GameListener {
   
   private fun ShapeRenderer.drawItem() {
     droppedItemLocation.values.asSequence().filter { it.second.isNotEmpty() }
-        .forEach {
-          val (x, y) = it.first
-          val items = it.second
-          val finalColor = it.third
-          if (finalColor.a == 0f)
-            finalColor.set(
-                when {
-                  "k98" in items -> rareSniperColor
-                  "m416" in items || "scar" in items || "m16" in items -> rareRifleColor
-                  "dp28" in items || "ak" in items -> rareRifleColor
-                  "AR_Extended" in items || "AR_Suppressor" in items || "AR_Composite" in items -> rareARAttachColor
-                  "SR_Extended" in items || "SR_Suppressor" in items || "CheekPad" in items -> rareSRAttachColor
-                  "bag3" in items -> rareBagColor
-                  "helmet3" in items -> rareHelmetColor
-                  "armor3" in items -> rareArmorColor
-                  "4x" in items -> rare4xColor
-                  "8x" in items -> rare8xColor
-                  "heal" in items -> healItemColor
-                  "drink" in items -> drinkItemColor
-                  
-                  else -> normalItemColor
-                })
+      .forEach {
+        val (x, y) = it.first
+        val items = it.second
+        val finalColor = it.third
+        if (finalColor.a == 0f)
+          finalColor.set(
+              when {
+                "bag3" in items -> rareBagColor
+                "helmet3" in items -> rareHelmetColor
+                "armor3" in items -> rareArmorColor
 
-          val backgroundRadius = (itemRadius + 50f)
-          val radius = itemRadius
-          val triBackRadius = backgroundRadius * 1.2f
-          val triRadius = radius * 1.2f
+                "4x" in items -> rare4xColor
+                "8x" in items -> rare8xColor
 
-          if ("k98" in items || "m416" in items || "scar" in items || "AR_Extended" in items || "AR_Extended" in items || "bag3" in items || "helmet3" in items || "armor3" in items || "4x" in items || "8x" in items || "heal" in items || "drink" in items) {
+                "k98" in items -> rareSniperColor
+                "m416" in items || "scar" in items || "m16" in items -> rareRifleColor
+                "dp28" in items || "ak" in items -> rareRifleColor
+
+                "heal" in items -> healItemColor
+                "drink" in items -> drinkItemColor
+
+                "AR_Extended" in items -> rareARAttachColor
+                "AR_Suppressor" in items -> rareARAttachColor
+                "AR_Composite" in items -> rareARAttachColor
+                "SR_Extended" in items -> rareSRAttachColor
+                "SR_Suppressor" in items -> rareSRAttachColor
+                "CheekPad" in items -> rareSRAttachColor
+
+                "reddot" in items || "holo" in items -> rare4xColor
+
+                "bag2" in items -> rareBagColor
+                "helmet2" in items -> rareHelmetColor
+                "armor2" in items -> rareArmorColor
+
+                else -> normalItemColor
+              }
+          )
+
+
+        val backgroundRadius = (itemRadius + 50f)
+        val radius = itemRadius
+        val triBackRadius = backgroundRadius * 1.2f
+        val triRadius = radius * 1.2f
+
+        if (("bag2" in items || "helmet2" in items || "armor2" in items) && (filterLvl2 == 1)) {
+          color = BLACK
+          triangle(x - triBackRadius, y - triBackRadius,
+                  x - triBackRadius, y + triBackRadius,
+                  x + triBackRadius, y - triBackRadius)
+          color = finalColor
+          triangle(x - triRadius, y - triRadius,
+                  x - triRadius, y + triRadius,
+                  x + triRadius, y - triRadius)
+        } 
+        
+        if (("reddot" in items || "holo" in items) && (filterScope == 1)) {
+          color = BLACK
+          triangle(x - triBackRadius, y - triBackRadius,
+                  x - triBackRadius, y + triBackRadius,
+                  x + triBackRadius, y - triBackRadius)
+          color = finalColor
+          triangle(x - triRadius, y - triRadius,
+                  x - triRadius, y + triRadius,
+                  x + triRadius, y - triRadius)
+        }
+        
+        if (filterAttach == 1) {
+          if (("AR_Extended" in items || "SR_Extended" in items)) {
             color = BLACK
             rect(x - backgroundRadius, y - backgroundRadius, backgroundRadius * 2, backgroundRadius * 2)
             color = finalColor
             rect(x - radius, y - radius, radius * 2, radius * 2)
-          } else if("m16" in items || "AR_Suppressor" in items || "SR_Suppressor" in items) {
+          } 
+          else if (("AR_Suppressor" in items || "SR_Suppressor" in items)) {
             color = BLACK
             circle(x, y, backgroundRadius * 1.2f, 10)
             color = finalColor
             circle(x, y, radius * 1.2f, 10)
-          } else if("dp28" in items || "ak" in items || "AR_Composite" in items || "CheekPad" in items) {
+          } 
+          else if (("AR_Composite" in items || "CheekPad" in items)) {
             color = BLACK
             triangle(x - triBackRadius, y - triBackRadius,
                     x - triBackRadius, y + triBackRadius,
@@ -588,15 +713,41 @@ class GLMap: InputAdapter(), ApplicationListener, GameListener {
             triangle(x - triRadius, y - triRadius,
                     x - triRadius, y + triRadius,
                     x + triRadius, y - triRadius)
-          }else {
-            /*
-            color = BLACK
-            circle(x, y, backgroundRadius, 10)
-            color = finalColor
-            circle(x, y, radius, 10)
-            */
           }
         }
+
+        if (filterWeapon == 1) {
+          if (("k98" in items || "m416" in items || "scar" in items)) {
+            color = BLACK
+            rect(x - backgroundRadius, y - backgroundRadius, backgroundRadius * 2, backgroundRadius * 2)
+            color = finalColor
+            rect(x - radius, y - radius, radius * 2, radius * 2)
+          } 
+          else if (("m16" in items)) {
+            color = BLACK
+            circle(x, y, backgroundRadius * 1.2f, 10)
+            color = finalColor
+            circle(x, y, radius * 1.2f, 10)
+          } 
+          else if (("dp28" in items || "ak" in items)) {
+            color = BLACK
+            triangle(x - triBackRadius, y - triBackRadius,
+                    x - triBackRadius, y + triBackRadius,
+                    x + triBackRadius, y - triBackRadius)
+            color = finalColor
+            triangle(x - triRadius, y - triRadius,
+                    x - triRadius, y + triRadius,
+                    x + triRadius, y - triRadius)
+          }
+        }
+
+        if ("4x" in items || "8x" in items || "heal" in items || "drink" in items || "bag3" in items || "helmet3" in items || "armor3" in items) {
+          color = BLACK
+          rect(x - backgroundRadius, y - backgroundRadius, backgroundRadius * 2, backgroundRadius * 2)
+          color = finalColor
+          rect(x - radius, y - radius, radius * 2, radius * 2)
+        }
+      }
   }
   
   fun drawPlayerInfos(players: MutableList<renderInfo>?) {
@@ -627,10 +778,12 @@ class GLMap: InputAdapter(), ApplicationListener, GameListener {
     
     val profileText = "${completedPlayerInfo.size}/${completedPlayerInfo.size + pendingPlayerInfo.size}"
     layout.setText(largeFont, profileText)
+    /*
     for(i in -1..1)
       for(j in -1..1)
         largeFontShadow.draw(spriteBatch, profileText, windowWidth - layout.width + i, windowHeight - 10f + j)
     largeFont.draw(spriteBatch, profileText, windowWidth - layout.width, windowHeight - 10f)
+    */
   }
   
   var lastPlayTime = System.currentTimeMillis()
@@ -729,7 +882,8 @@ class GLMap: InputAdapter(), ApplicationListener, GameListener {
       arc(x, y, directionRadius, dir - fov / 2, fov, 10)
     }
   }
-  
+
+
   private fun isTeamMate(actor: Actor?): Boolean {
     if (actor != null) {
       val playerStateGUID = actorWithPlayerState[actor.netGUID]
@@ -786,8 +940,8 @@ class GLMap: InputAdapter(), ApplicationListener, GameListener {
     largeFontShadow.dispose()
     littleFont.dispose()
     littleFontShadow.dispose()
-    compaseFont.dispose()
-    compaseFontShadow.dispose()
+    compassFont.dispose()
+    compassFontShadow.dispose()
     //mapErangel.dispose()
     //mapMiramar.dispose()
     var cur = 0

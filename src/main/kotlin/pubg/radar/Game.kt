@@ -38,7 +38,8 @@ fun gameOver() {
 }
 
 fun main(args: Array<String>) {
-  Sniffer.sniffLocationOnline()
+  //Sniffer.sniffLocationOnline()
+  Sniffer.sniffLocationOffline() //use offline mode (read pcap)
   val ui = GLMap()
   ui.show()
 }

@@ -19,8 +19,8 @@ class Item {
                 "Muzzle" to mapOf(
                     "Choke" to "Choke",
                     "Compensator" to mapOf(
-                        "Large" to "AR_Compensator"),
-                        //"SniperRifle" to "SR_Compensator"),
+                        "Large" to "AR_Compensator",
+                        "SniperRifle" to "SR_Compensator"),
                     "FlashHider" to mapOf(
                         "Large" to "AR_FlashHider",
                         "SniperRifle" to "SR_FlashHider"),
@@ -33,6 +33,8 @@ class Item {
                         "BulletLoops" to "BulletLoops",
                         "CheekPad" to "CheekPad")),
                 "Upper" to mapOf(
+                    "DotSight" to "reddot",
+                    "Holosight" to "holo",
                     "ACOG" to "4x",
                     "CQBSS" to "8x"))),
         "Boost" to "drink",
