@@ -228,7 +228,7 @@ class GLMap: InputAdapter(), ApplicationListener, GameListener {
     }
     mapTiles = mapErangelTiles
 
-    val generatorHub = FreeTypeFontGenerator(Gdx.files.internal("font/AGENCYFB.TTF"))
+    val generatorHub = FreeTypeFontGenerator(Gdx.files.internal("font/AgencyFB.ttf"))
     val paramHub = FreeTypeFontParameter()
     paramHub.characters = DEFAULT_CHARS
     paramHub.size = 30
@@ -242,7 +242,7 @@ class GLMap: InputAdapter(), ApplicationListener, GameListener {
     paramHub.color = Color(1f, 1f, 1f, 0.2f) 
     espFontShadow = generatorHub.generateFont(paramHub)
     
-    val generatorNumber = FreeTypeFontGenerator(Gdx.files.internal("font/NUMBER.TTF"))
+    val generatorNumber = FreeTypeFontGenerator(Gdx.files.internal("font/CenturyGothicBold.ttf"))
     val paramNumber = FreeTypeFontParameter()
     paramNumber.characters = DEFAULT_CHARS
     paramNumber.size = 24
@@ -256,7 +256,7 @@ class GLMap: InputAdapter(), ApplicationListener, GameListener {
     paramNumber.color = Color(0f, 0f, 0f, 0.5f) 
     compassFontShadow = generatorNumber.generateFont(paramNumber)
 
-    val generator = FreeTypeFontGenerator(Gdx.files.internal("font/GOTHICB.TTF"))
+    val generator = FreeTypeFontGenerator(Gdx.files.internal("font/ArialNarrowBold.ttf"))
     val param = FreeTypeFontParameter()
     param.characters = DEFAULT_CHARS
     param.size = 20
@@ -776,9 +776,9 @@ class GLMap: InputAdapter(), ApplicationListener, GameListener {
       }
     }
     
+    /*
     val profileText = "${completedPlayerInfo.size}/${completedPlayerInfo.size + pendingPlayerInfo.size}"
     layout.setText(largeFont, profileText)
-    /*
     for(i in -1..1)
       for(j in -1..1)
         largeFontShadow.draw(spriteBatch, profileText, windowWidth - layout.width + i, windowHeight - 10f + j)
@@ -934,6 +934,10 @@ class GLMap: InputAdapter(), ApplicationListener, GameListener {
   override fun dispose() {
     deregister(this)
     alarmSound.dispose()
+    hubFont.dispose()
+    hubFontShadow.dispose()
+    espFont.dispose()
+    espFontShadow.dispose()
     nameFont.dispose()
     nameFontShadow.dispose()
     largeFont.dispose()
