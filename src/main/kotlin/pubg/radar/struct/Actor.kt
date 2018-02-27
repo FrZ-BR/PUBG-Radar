@@ -1,4 +1,4 @@
-package pubg.radar.struct
+ckagepackage pubg.radar.struct
 
 import com.badlogic.gdx.math.Vector3
 import pubg.radar.struct.Archetype.*
@@ -11,8 +11,8 @@ enum class Archetype { //order matters, it affects the order of drawing
   Grenade,
   TwoSeatBoat,
   SixSeatBoat,
-  TwoSeatBike,
   ThreeSeatBike,
+  TwoSeatBike,
   TwoSeatCar,
   FourSeatCar,
   SixSeatCar,
@@ -31,8 +31,8 @@ enum class Archetype { //order matters, it affects the order of drawing
       archetype.contains("DroppedItemGroup") -> DroopedItemGroup
       archetype.contains("Aircraft") -> Plane
       archetype.contains("Parachute") -> Parachute
-      archetype.contains("bike", true) -> TwoSeatBike
       archetype.contains("Sidecart", true) -> ThreeSeatBike
+      archetype.contains("bike", true) -> TwoSeatBike
       archetype.contains("buggy", true) -> TwoSeatCar
       archetype.contains(Regex("(dacia|uaz|pickup)", RegexOption.IGNORE_CASE)) -> FourSeatCar
       archetype.contains("bus", true) -> SixSeatCar

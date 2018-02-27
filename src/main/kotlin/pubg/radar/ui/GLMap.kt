@@ -95,7 +95,7 @@ class GLMap: InputAdapter(), ApplicationListener, GameListener {
   
   fun show() {
     val config = Lwjgl3ApplicationConfiguration()
-    config.setTitle("[${localAddr.hostAddress} ${sniffOption.name}] - PUBG Radar")
+    config.setTitle("${sniffOption.name}")
     //config.useOpenGL3(true, 3, 3)
     config.useOpenGL3(false, 3, 2)
     config.setWindowedMode(600, 600)
@@ -106,12 +106,9 @@ class GLMap: InputAdapter(), ApplicationListener, GameListener {
   
   lateinit var spriteBatch: SpriteBatch
   lateinit var shapeRenderer: ShapeRenderer
-  //lateinit var mapErangel: Texture
-  //lateinit var mapMiramar: Texture
   lateinit var mapErangelTiles: MutableMap<String, MutableMap<String, MutableMap<String, Texture>>>
   lateinit var mapMiramarTiles: MutableMap<String, MutableMap<String, MutableMap<String, Texture>>>
   lateinit var mapTiles: MutableMap<String, MutableMap<String, MutableMap<String, Texture>>>
-  //lateinit var map: Texture
   lateinit var hub_panel: Texture
   lateinit var hub_panel_blank: Texture
   lateinit var largeFont: BitmapFont
@@ -133,6 +130,7 @@ class GLMap: InputAdapter(), ApplicationListener, GameListener {
   val tileZooms = listOf("256", "512", "1024", "2048", "4096", "8192")
   val tileRowCounts = listOf(1, 2, 4, 8, 16, 32)
   val tileSizes = listOf(819200f, 409600f, 204800f, 102400f, 51200f, 25600f)
+  
 
   val layout = GlyphLayout()
   var windowWidth = initialWindowWidth
@@ -205,9 +203,6 @@ class GLMap: InputAdapter(), ApplicationListener, GameListener {
     alarmSound = Gdx.audio.newSound(Gdx.files.internal("sounds/Alarm.wav"))
     hub_panel = Texture(Gdx.files.internal("images/hub_panel.png"))
     hub_panel_blank = Texture(Gdx.files.internal("images/hub_panel_blank.png"))
-    //mapErangel = Texture(Gdx.files.internal("Erangel.bmp"))
-    //mapMiramar = Texture(Gdx.files.internal("Miramar.bmp"))
-    //map = mapErangel
     mapErangelTiles = mutableMapOf()
     mapMiramarTiles = mutableMapOf()
     var cur = 0
@@ -280,7 +275,6 @@ class GLMap: InputAdapter(), ApplicationListener, GameListener {
     Gdx.gl.glClearColor(0.417f, 0.417f, 0.417f, 0f)
     Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT)
     if (gameStarted)
-      //map = if (isErangel) mapErangel else mapMiramar
       mapTiles = if (isErangel) mapErangelTiles else mapMiramarTiles
     else
       return
@@ -295,14 +289,6 @@ class GLMap: InputAdapter(), ApplicationListener, GameListener {
     camera.update()
     
     //draw map
-    /*
-    paint(camera.combined) {
-      draw(map, 0f, 0f, mapWidth, mapWidth,
-           //0, 0, mapWidthCropped, mapWidthCropped,
-           0, 0, map.width, map.height,
-           false, true)
-    }
-    */
     val cameraTileScale = Math.max(windowWidth, windowHeight) / camera.zoom
     var useScale = 0
     when {
@@ -527,17 +513,7 @@ class GLMap: InputAdapter(), ApplicationListener, GameListener {
   
   private fun drawGrid() {
     draw(Filled) {
-      /*
-      color = BLACK
-      //thin grid
-      for (i in 0..7)
-        for (j in 0..9) {
-          rectLine(0f, i * unit + j * unit2, gridWidth, i * unit + j * unit2, 100f)
-          rectLine(i * unit + j * unit2, 0f, i * unit + j * unit2, gridWidth, 100f)
-        }
-      */
       color = GRAY
-      //thick grid
       for (i in 0..7) {
         rectLine(0f, i * unit, gridWidth, i * unit, 500f)
         rectLine(i * unit, 0f, i * unit, gridWidth, 500f)
@@ -946,8 +922,6 @@ class GLMap: InputAdapter(), ApplicationListener, GameListener {
     littleFontShadow.dispose()
     compassFont.dispose()
     compassFontShadow.dispose()
-    //mapErangel.dispose()
-    //mapMiramar.dispose()
     var cur = 0
     tileZooms.forEach{
         for (i in 1..tileRowCounts[cur]) {
