@@ -1,5 +1,5 @@
 # PUBG-Radar
-![alt text](https://i.imgur.com/ccCc5u5.png)
+![alt text](https://i.imgur.com/6pIU8vA.png)
 
 ![alt text](https://i.imgur.com/EyRE5j7.png)
 
