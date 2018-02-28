@@ -4,6 +4,8 @@ import com.badlogic.gdx.*
 import com.badlogic.gdx.Input.Buttons.LEFT
 import com.badlogic.gdx.Input.Buttons.MIDDLE
 import com.badlogic.gdx.Input.Buttons.RIGHT
+import com.badlogic.gdx.Input.Buttons.BACK
+import com.badlogic.gdx.Input.Buttons.FORWARD
 import com.badlogic.gdx.Input.Keys.NUM_1
 import com.badlogic.gdx.Input.Keys.NUM_2
 import com.badlogic.gdx.Input.Keys.NUM_3
@@ -111,6 +113,7 @@ class GLMap: InputAdapter(), ApplicationListener, GameListener {
   lateinit var mapTiles: MutableMap<String, MutableMap<String, MutableMap<String, Texture>>>
   lateinit var hub_panel: Texture
   lateinit var hub_panel_blank: Texture
+  lateinit var bg_compass: Texture
   lateinit var largeFont: BitmapFont
   lateinit var largeFontShadow: BitmapFont
   lateinit var littleFont: BitmapFont
@@ -144,31 +147,88 @@ class GLMap: InputAdapter(), ApplicationListener, GameListener {
   var filterAttach = -1
   var filterLvl2 = -1
   var filterScope = -1
+  var showCompass = 1
+
+  var dragging = false
+  var prevScreenX = -1f
+  var prevScreenY = -1f
+  var screenOffsetX = 0f
+  var screenOffsetY = 0f
 
   
   fun Vector2.windowToMap() =
-      Vector2(selfCoords.x + (x - windowWidth / 2.0f) * camera.zoom * windowToMapUnit,
-              selfCoords.y + (y - windowHeight / 2.0f) * camera.zoom * windowToMapUnit)
+      // Vector2(selfCoords.x + (x - windowWidth / 2.0f) * camera.zoom * windowToMapUnit,
+      //        selfCoords.y + (y - windowHeight / 2.0f) * camera.zoom * windowToMapUnit)
+      Vector2(selfCoords.x + (x - windowWidth / 2.0f) * camera.zoom * windowToMapUnit + screenOffsetX,
+              selfCoords.y + (y - windowHeight / 2.0f) * camera.zoom * windowToMapUnit + screenOffsetY)
   
   fun Vector2.mapToWindow() =
-      Vector2((x - selfCoords.x) / (camera.zoom * windowToMapUnit) + windowWidth / 2.0f,
-              (y - selfCoords.y) / (camera.zoom * windowToMapUnit) + windowHeight / 2.0f)
+      // Vector2((x - selfCoords.x) / (camera.zoom * windowToMapUnit) + windowWidth / 2.0f,
+      //         (y - selfCoords.y) / (camera.zoom * windowToMapUnit) + windowHeight / 2.0f)
+      Vector2((x - selfCoords.x - screenOffsetX) / (camera.zoom * windowToMapUnit) + windowWidth / 2.0f,
+              (y - selfCoords.y - screenOffsetY) / (camera.zoom * windowToMapUnit) + windowHeight / 2.0f)      
   
   override fun scrolled(amount: Int): Boolean {
-    camera.zoom *= 1.2f.pow(amount)
+    if (camera.zoom >= 0.04823f && camera.zoom <= 1.2899f) {
+            camera.zoom *= 1.2f.pow(amount)
+    } else {
+      if (camera.zoom < 0.04823f) 
+        camera.zoom = 0.04823f
+      if (camera.zoom > 1.2899f)
+        camera.zoom = 1.2899f
+    }
     return true
   }
   
+  var quickZoom = 1
   override fun touchDown(screenX: Int, screenY: Int, pointer: Int, button: Int): Boolean {
     if (button == MIDDLE) {
       pinLocation.set(pinLocation.set(screenX.toFloat(), screenY.toFloat()).windowToMap())
+      screenOffsetX = 0f
+      screenOffsetY = 0f
+      showCompass = 1
       return true
+    } else if (button == BACK) {
+      camera.zoom /= 1.2f
+      camera.update()
+    } else if (button == FORWARD) {
+      camera.zoom *= 1.2f
+      camera.update()
     } else if (button == LEFT) {
-      camera.zoom = 1 / 10f
-      camera.update()
+      dragging = true
+      prevScreenX = screenX.toFloat()
+      prevScreenY = screenY.toFloat()
+      return true
     } else if (button == RIGHT) {
-      camera.zoom = 1 / 4f
-      camera.update()
+      if (quickZoom == 1) {
+        camera.zoom = 1 / 10f
+        camera.update()
+        quickZoom = quickZoom * -1
+      } else if (quickZoom == -1) {
+        camera.zoom = 1 / 4f
+        camera.update()
+        quickZoom = quickZoom * -1
+      }
+    }
+    return false
+  }
+
+  override fun touchDragged (screenX: Int, screenY: Int, pointer: Int): Boolean {
+    if (!dragging) return false
+    with (camera) {
+      screenOffsetX += (prevScreenX - screenX.toFloat()) * camera.zoom * 500
+      screenOffsetY += (prevScreenY - screenY.toFloat()) * camera.zoom * 500
+      prevScreenX = screenX.toFloat()
+      prevScreenY = screenY.toFloat()
+    }
+    showCompass = -1
+    return true
+  }
+
+  override fun touchUp(screenX: Int, screenY: Int, pointer: Int, button: Int): Boolean {
+    if (button == LEFT) {
+      dragging = false
+      return true
     }
     return false
   }
@@ -203,6 +263,7 @@ class GLMap: InputAdapter(), ApplicationListener, GameListener {
     alarmSound = Gdx.audio.newSound(Gdx.files.internal("sounds/Alarm.wav"))
     hub_panel = Texture(Gdx.files.internal("images/hub_panel.png"))
     hub_panel_blank = Texture(Gdx.files.internal("images/hub_panel_blank.png"))
+    bg_compass = Texture(Gdx.files.internal("images/bg_compass.png"))
     mapErangelTiles = mutableMapOf()
     mapMiramarTiles = mutableMapOf()
     var cur = 0
@@ -236,20 +297,11 @@ class GLMap: InputAdapter(), ApplicationListener, GameListener {
     espFont = generatorHub.generateFont(paramHub)
     paramHub.color = Color(1f, 1f, 1f, 0.2f) 
     espFontShadow = generatorHub.generateFont(paramHub)
-    
-    val generatorNumber = FreeTypeFontGenerator(Gdx.files.internal("font/CenturyGothicBold.ttf"))
-    val paramNumber = FreeTypeFontParameter()
-    paramNumber.characters = DEFAULT_CHARS
-    paramNumber.size = 24
-    paramNumber.color = WHITE
-    largeFont = generatorNumber.generateFont(paramNumber)
-    paramNumber.color = Color(0f, 0f, 0f, 0.5f) 
-    largeFontShadow = generatorNumber.generateFont(paramNumber)
-    paramNumber.size = 14
-    paramNumber.color = compassColor
-    compassFont = generatorNumber.generateFont(paramNumber)
-    paramNumber.color = Color(0f, 0f, 0f, 0.5f) 
-    compassFontShadow = generatorNumber.generateFont(paramNumber)
+    paramHub.size = 14
+    paramHub.color = WHITE
+    compassFont = generatorHub.generateFont(paramHub)
+    paramHub.color = Color(0f, 0f, 0f, 0.5f) 
+    compassFontShadow = generatorHub.generateFont(paramHub)
 
     val generator = FreeTypeFontGenerator(Gdx.files.internal("font/ArialNarrowBold.ttf"))
     val param = FreeTypeFontParameter()
@@ -266,7 +318,6 @@ class GLMap: InputAdapter(), ApplicationListener, GameListener {
     nameFontShadow = generator.generateFont(param)
 
     generatorHub.dispose()
-    generatorNumber.dispose()
     generator.dispose()    
   }
   
@@ -285,7 +336,8 @@ class GLMap: InputAdapter(), ApplicationListener, GameListener {
       selfDir.set(preDirection)
     
     //move camera
-    camera.position.set(selfX, selfY, 0f)
+    // camera.position.set(selfX, selfY, 0f)
+    camera.position.set(selfX + screenOffsetX, selfY + screenOffsetY, 0f)
     camera.update()
     
     //draw map
@@ -348,16 +400,24 @@ class GLMap: InputAdapter(), ApplicationListener, GameListener {
       hubFont.draw(spriteBatch, "$NumAlivePlayers", windowWidth - 110f - layout.width /2, windowHeight - 29f)
 
       val teamText = "$NumAliveTeams"
-      layout.setText(hubFont, teamText)
-      spriteBatch.draw(hub_panel, windowWidth - 260f, windowHeight - 60f)
-      hubFontShadow.draw(spriteBatch, "TEAM", windowWidth - 215f, windowHeight - 29f)
-      hubFont.draw(spriteBatch, "$NumAliveTeams", windowWidth - 240f - layout.width /2, windowHeight - 29f)
+      if (teamText != numText) {
+        layout.setText(hubFont, teamText)
+        spriteBatch.draw(hub_panel, windowWidth - 260f, windowHeight - 60f)
+        hubFontShadow.draw(spriteBatch, "TEAM", windowWidth - 215f, windowHeight - 29f)
+        hubFont.draw(spriteBatch, "$NumAliveTeams", windowWidth - 240f - layout.width /2, windowHeight - 29f)
+      } 
 
       val timeText = "${TotalWarningDuration.toInt()-ElapsedWarningDuration.toInt()}"
       layout.setText(hubFont, timeText)
-      spriteBatch.draw(hub_panel, windowWidth - 390f, windowHeight - 60f)
-      hubFontShadow.draw(spriteBatch, "SECS", windowWidth - 345f, windowHeight - 29f)
-      hubFont.draw(spriteBatch, "${TotalWarningDuration.toInt()-ElapsedWarningDuration.toInt()}", windowWidth - 370f - layout.width /2, windowHeight - 29f)
+      if (teamText != numText) {
+        spriteBatch.draw(hub_panel, windowWidth - 390f, windowHeight - 60f)
+        hubFontShadow.draw(spriteBatch, "SECS", windowWidth - 345f, windowHeight - 29f)
+        hubFont.draw(spriteBatch, "${TotalWarningDuration.toInt()-ElapsedWarningDuration.toInt()}", windowWidth - 370f - layout.width /2, windowHeight - 29f)
+      } else {
+        spriteBatch.draw(hub_panel, windowWidth - 390f - 130f, windowHeight - 60f)
+        hubFontShadow.draw(spriteBatch, "SECS", windowWidth - 345f - 130f, windowHeight - 29f)
+        hubFont.draw(spriteBatch, "${TotalWarningDuration.toInt()-ElapsedWarningDuration.toInt()}", windowWidth - 370f - 130f - layout.width /2, windowHeight - 29f)
+      }
 
       // ITEM ESP FILTER PANEL
       spriteBatch.draw(hub_panel_blank, 30f, windowHeight - 60f)
@@ -381,6 +441,10 @@ class GLMap: InputAdapter(), ApplicationListener, GameListener {
         espFont.draw(spriteBatch, "SCOPE", 92f, windowHeight - 42f)
       else
         espFontShadow.draw(spriteBatch, "SCOPE", 92f, windowHeight - 42f)
+
+      // COMPASS BACKGROUND
+      if (showCompass == 1)
+        spriteBatch.draw(bg_compass, windowWidth/2 - 168f, windowHeight/2 - 168f)
       
 
       val time = (pinLocation.cpy().sub(selfX, selfY).len() / runSpeed).toInt()
@@ -394,25 +458,40 @@ class GLMap: InputAdapter(), ApplicationListener, GameListener {
 
       for(i in -1..1) {
           for(j in -1..1) {
+            /*
             compassFontShadow.draw(spriteBatch, "0"  , windowWidth/2 + i, windowHeight/2 + 150 + j)        // N
-            compassFontShadow.draw(spriteBatch, "45" , windowWidth/2 + 150 + i, windowHeight/2 + 150 + j)  // NE
+            compassFontShadow.draw(spriteBatch, "45" , windowWidth/2 + 106 + i, windowHeight/2 + 106 + j)  // NE
             compassFontShadow.draw(spriteBatch, "90" , windowWidth/2 + 150 + i, windowHeight/2 + j)        // E
-            compassFontShadow.draw(spriteBatch, "135", windowWidth/2 + 150 + i, windowHeight/2 - 150 + j)  // SE
+            compassFontShadow.draw(spriteBatch, "135", windowWidth/2 + 106 + i, windowHeight/2 - 106 + j)  // SE
             compassFontShadow.draw(spriteBatch, "180", windowWidth/2 + i, windowHeight/2 - 150 + j)        // S
-            compassFontShadow.draw(spriteBatch, "225", windowWidth/2 - 150 + i, windowHeight/2 - 150+ j)   // SW
+            compassFontShadow.draw(spriteBatch, "225", windowWidth/2 - 106 + i, windowHeight/2 - 106+ j)   // SW
             compassFontShadow.draw(spriteBatch, "270", windowWidth/2 - 150 + i, windowHeight/2 + j)        // W
-            compassFontShadow.draw(spriteBatch, "315", windowWidth/2 - 150 + i, windowHeight/2 + 150+ j)   // NW
+            compassFontShadow.draw(spriteBatch, "315", windowWidth/2 - 106 + i, windowHeight/2 + 106+ j)   // NW
+            */
             littleFontShadow.draw(spriteBatch, "$pinDistance", x + i, windowHeight - y + j)
           }
       }
-      compassFont.draw(spriteBatch, "0"  , windowWidth/2, windowHeight/2 + 150)        // N
-      compassFont.draw(spriteBatch, "45" , windowWidth/2 + 150, windowHeight/2 + 150)  // NE
-      compassFont.draw(spriteBatch, "90" , windowWidth/2 + 150, windowHeight/2)        // E
-      compassFont.draw(spriteBatch, "135", windowWidth/2 + 150, windowHeight/2 - 150)  // SE
-      compassFont.draw(spriteBatch, "180", windowWidth/2, windowHeight/2 - 150)        // S
-      compassFont.draw(spriteBatch, "225", windowWidth/2 - 150, windowHeight/2 - 150)  // SW
-      compassFont.draw(spriteBatch, "270", windowWidth/2 - 150, windowHeight/2)        // W
-      compassFont.draw(spriteBatch, "315", windowWidth/2 - 150, windowHeight/2 + 150)  // NW
+
+      if (showCompass == 1) {
+        layout.setText(compassFont, "${(1200*camera.zoom).toInt()}")
+        compassFont.draw(spriteBatch, "${(1200*camera.zoom).toInt()}"  , windowWidth/2 - layout.width/2, windowHeight/2 - 2 + 150)  // Radius
+        layout.setText(compassFont, "0")
+        compassFont.draw(spriteBatch, "0"  , windowWidth/2 - layout.width/2, windowHeight/2 + layout.height + 150)                  // N
+        layout.setText(compassFont, "45")
+        compassFont.draw(spriteBatch, "45" , windowWidth/2 - layout.width/2 + 104, windowHeight/2 + layout.height/2 + 104)          // NE
+        layout.setText(compassFont, "90")
+        compassFont.draw(spriteBatch, "90" , windowWidth/2 - layout.width/2 + 147, windowHeight/2 + layout.height/2)                // E
+        layout.setText(compassFont, "135")
+        compassFont.draw(spriteBatch, "135", windowWidth/2 - layout.width/2 + 106, windowHeight/2 + layout.height/2 - 106)          // SE
+        layout.setText(compassFont, "180")
+        compassFont.draw(spriteBatch, "180", windowWidth/2 - layout.width/2, windowHeight/2 + layout.height/2 - 151)                // S
+        layout.setText(compassFont, "225")
+        compassFont.draw(spriteBatch, "225", windowWidth/2 - layout.width/2 - 109, windowHeight/2 + layout.height/2 - 109)          // SW
+        layout.setText(compassFont, "270")
+        compassFont.draw(spriteBatch, "270", windowWidth/2 - layout.width/2 - 153, windowHeight/2 + layout.height/2)                // W
+        layout.setText(compassFont, "315")
+        compassFont.draw(spriteBatch, "315", windowWidth/2 - layout.width/2 - 106, windowHeight/2 + layout.height/2 + 106)          // NW
+      }
       littleFont.draw(spriteBatch, "$pinDistance", x, windowHeight - y)
     }
     
@@ -647,48 +726,48 @@ class GLMap: InputAdapter(), ApplicationListener, GameListener {
 
         if (("bag2" in items || "helmet2" in items || "armor2" in items) && (filterLvl2 == 1)) {
           color = BLACK
-          triangle(x - triBackRadius, y - triBackRadius,
-                  x - triBackRadius, y + triBackRadius,
-                  x + triBackRadius, y - triBackRadius)
+          triangle(x - 4 - triBackRadius, y + 4 - triBackRadius,
+                  x - 4 - triBackRadius, y + 4 + triBackRadius,
+                  x - 4 + triBackRadius, y + 4- triBackRadius)
           color = finalColor
-          triangle(x - triRadius, y - triRadius,
-                  x - triRadius, y + triRadius,
-                  x + triRadius, y - triRadius)
+          triangle(x - 4 - triRadius, y + 4 - triRadius,
+                  x - 4 - triRadius, y + 4 + triRadius,
+                  x - 4 + triRadius, y + 4 - triRadius)
         } 
         
         if (("reddot" in items || "holo" in items) && (filterScope == 1)) {
           color = BLACK
-          triangle(x - triBackRadius, y - triBackRadius,
-                  x - triBackRadius, y + triBackRadius,
-                  x + triBackRadius, y - triBackRadius)
+          triangle(x + 4 - triBackRadius, y + 4 - triBackRadius,
+                  x + 4 - triBackRadius, y + 4 + triBackRadius,
+                  x + 4 + triBackRadius, y + 4 - triBackRadius)
           color = finalColor
-          triangle(x - triRadius, y - triRadius,
-                  x - triRadius, y + triRadius,
-                  x + triRadius, y - triRadius)
+          triangle(x + 4 - triRadius, y + 4 - triRadius,
+                  x + 4 - triRadius, y + 4 + triRadius,
+                  x + 4 + triRadius, y + 4 - triRadius)
         }
         
         if (filterAttach == 1) {
           if (("AR_Extended" in items || "SR_Extended" in items)) {
             color = BLACK
-            rect(x - backgroundRadius, y - backgroundRadius, backgroundRadius * 2, backgroundRadius * 2)
+            rect(x + 4 - backgroundRadius, y - 4 - backgroundRadius, backgroundRadius * 2, backgroundRadius * 2)
             color = finalColor
-            rect(x - radius, y - radius, radius * 2, radius * 2)
+            rect(x + 4 - radius, y - 4 - radius, radius * 2, radius * 2)
           } 
           else if (("AR_Suppressor" in items || "SR_Suppressor" in items)) {
             color = BLACK
-            circle(x, y, backgroundRadius * 1.2f, 10)
+            circle(x + 4, y - 4, backgroundRadius * 1.2f, 10)
             color = finalColor
-            circle(x, y, radius * 1.2f, 10)
+            circle(x + 4, y - 4, radius * 1.2f, 10)
           } 
           else if (("AR_Composite" in items || "CheekPad" in items)) {
             color = BLACK
-            triangle(x - triBackRadius, y - triBackRadius,
-                    x - triBackRadius, y + triBackRadius,
-                    x + triBackRadius, y - triBackRadius)
+            triangle(x + 4 - triBackRadius, y - 4 - triBackRadius,
+                    x + 4 - triBackRadius, y - 4 + triBackRadius,
+                    x + 4 + triBackRadius, y - 4 - triBackRadius)
             color = finalColor
-            triangle(x - triRadius, y - triRadius,
-                    x - triRadius, y + triRadius,
-                    x + triRadius, y - triRadius)
+            triangle(x + 4 - triRadius, y - 4 - triRadius,
+                    x + 4 - triRadius, y - 4 + triRadius,
+                    x + 4 + triRadius, y - 4 - triRadius)
           }
         }
 
@@ -719,9 +798,9 @@ class GLMap: InputAdapter(), ApplicationListener, GameListener {
 
         if ("4x" in items || "8x" in items || "heal" in items || "drink" in items || "bag3" in items || "helmet3" in items || "armor3" in items) {
           color = BLACK
-          rect(x - backgroundRadius, y - backgroundRadius, backgroundRadius * 2, backgroundRadius * 2)
+          rect(x - 4 - backgroundRadius, y - 4 - backgroundRadius, backgroundRadius * 2, backgroundRadius * 2)
           color = finalColor
-          rect(x - radius, y - radius, radius * 2, radius * 2)
+          rect(x - 4 - radius, y - 4 - radius, radius * 2, radius * 2)
         }
       }
   }
