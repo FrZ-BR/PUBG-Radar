@@ -98,11 +98,13 @@ class GLMap: InputAdapter(), ApplicationListener, GameListener {
   fun show() {
     val config = Lwjgl3ApplicationConfiguration()
     config.setTitle("${sniffOption.name}")
-    //config.useOpenGL3(true, 3, 3)
-    config.useOpenGL3(false, 3, 2)
+    config.useOpenGL3(true, 3, 3)
+    // config.useOpenGL3(false, 3, 2)
     config.setWindowedMode(600, 600)
     config.setResizable(true)
-    config.setBackBufferConfig(8, 8, 8, 8, 32, 0, 8)
+    //config.setFullscreenMode(Lwjgl3ApplicationConfiguration.getDisplayMode())
+    // config.setBackBufferConfig(8, 8, 8, 8, 32, 0, 8)
+    config.setBackBufferConfig(8, 8, 8, 8, 16, 0, 2)
     Lwjgl3Application(this, config)
   }
   
@@ -114,8 +116,6 @@ class GLMap: InputAdapter(), ApplicationListener, GameListener {
   lateinit var hub_panel: Texture
   lateinit var hub_panel_blank: Texture
   lateinit var bg_compass: Texture
-  lateinit var largeFont: BitmapFont
-  lateinit var largeFontShadow: BitmapFont
   lateinit var littleFont: BitmapFont
   lateinit var littleFontShadow: BitmapFont
   lateinit var nameFont: BitmapFont
@@ -148,6 +148,7 @@ class GLMap: InputAdapter(), ApplicationListener, GameListener {
   var filterLvl2 = -1
   var filterScope = -1
   var showCompass = 1
+  var zoomSwitch = 1
 
   var dragging = false
   var prevScreenX = -1f
@@ -157,14 +158,10 @@ class GLMap: InputAdapter(), ApplicationListener, GameListener {
 
   
   fun Vector2.windowToMap() =
-      // Vector2(selfCoords.x + (x - windowWidth / 2.0f) * camera.zoom * windowToMapUnit,
-      //        selfCoords.y + (y - windowHeight / 2.0f) * camera.zoom * windowToMapUnit)
       Vector2(selfCoords.x + (x - windowWidth / 2.0f) * camera.zoom * windowToMapUnit + screenOffsetX,
               selfCoords.y + (y - windowHeight / 2.0f) * camera.zoom * windowToMapUnit + screenOffsetY)
   
   fun Vector2.mapToWindow() =
-      // Vector2((x - selfCoords.x) / (camera.zoom * windowToMapUnit) + windowWidth / 2.0f,
-      //         (y - selfCoords.y) / (camera.zoom * windowToMapUnit) + windowHeight / 2.0f)
       Vector2((x - selfCoords.x - screenOffsetX) / (camera.zoom * windowToMapUnit) + windowWidth / 2.0f,
               (y - selfCoords.y - screenOffsetY) / (camera.zoom * windowToMapUnit) + windowHeight / 2.0f)      
   
@@ -178,9 +175,8 @@ class GLMap: InputAdapter(), ApplicationListener, GameListener {
         camera.zoom = 1.2899f
     }
     return true
-  }
+  }  
   
-  var quickZoom = 1
   override fun touchDown(screenX: Int, screenY: Int, pointer: Int, button: Int): Boolean {
     if (button == MIDDLE) {
       pinLocation.set(pinLocation.set(screenX.toFloat(), screenY.toFloat()).windowToMap())
@@ -200,14 +196,14 @@ class GLMap: InputAdapter(), ApplicationListener, GameListener {
       prevScreenY = screenY.toFloat()
       return true
     } else if (button == RIGHT) {
-      if (quickZoom == 1) {
+      if (zoomSwitch == 1) {
         camera.zoom = 1 / 10f
         camera.update()
-        quickZoom = quickZoom * -1
-      } else if (quickZoom == -1) {
+        zoomSwitch = zoomSwitch * -1
+      } else if (zoomSwitch == -1) {
         camera.zoom = 1 / 4f
         camera.update()
-        quickZoom = quickZoom * -1
+        zoomSwitch = zoomSwitch * -1
       }
     }
     return false
@@ -335,12 +331,11 @@ class GLMap: InputAdapter(), ApplicationListener, GameListener {
     if (selfDir.len() < 1e-8)
       selfDir.set(preDirection)
     
-    //move camera
-    // camera.position.set(selfX, selfY, 0f)
+    // MOVE CAMERA
     camera.position.set(selfX + screenOffsetX, selfY + screenOffsetY, 0f)
     camera.update()
     
-    //draw map
+    // DRAW MAP
     val cameraTileScale = Math.max(windowWidth, windowHeight) / camera.zoom
     var useScale = 0
     when {
@@ -377,7 +372,7 @@ class GLMap: InputAdapter(), ApplicationListener, GameListener {
     shapeRenderer.projectionMatrix = camera.combined
     Gdx.gl.glEnable(GL20.GL_BLEND)
     
-    drawGrid()
+    //drawGrid()
     drawCircles()
     
     val typeLocation = EnumMap<Archetype, MutableList<renderInfo>>(Archetype::class.java)
@@ -458,16 +453,6 @@ class GLMap: InputAdapter(), ApplicationListener, GameListener {
 
       for(i in -1..1) {
           for(j in -1..1) {
-            /*
-            compassFontShadow.draw(spriteBatch, "0"  , windowWidth/2 + i, windowHeight/2 + 150 + j)        // N
-            compassFontShadow.draw(spriteBatch, "45" , windowWidth/2 + 106 + i, windowHeight/2 + 106 + j)  // NE
-            compassFontShadow.draw(spriteBatch, "90" , windowWidth/2 + 150 + i, windowHeight/2 + j)        // E
-            compassFontShadow.draw(spriteBatch, "135", windowWidth/2 + 106 + i, windowHeight/2 - 106 + j)  // SE
-            compassFontShadow.draw(spriteBatch, "180", windowWidth/2 + i, windowHeight/2 - 150 + j)        // S
-            compassFontShadow.draw(spriteBatch, "225", windowWidth/2 - 106 + i, windowHeight/2 - 106+ j)   // SW
-            compassFontShadow.draw(spriteBatch, "270", windowWidth/2 - 150 + i, windowHeight/2 + j)        // W
-            compassFontShadow.draw(spriteBatch, "315", windowWidth/2 - 106 + i, windowHeight/2 + 106+ j)   // NW
-            */
             littleFontShadow.draw(spriteBatch, "$pinDistance", x + i, windowHeight - y + j)
           }
       }
@@ -574,8 +559,6 @@ class GLMap: InputAdapter(), ApplicationListener, GameListener {
   private fun drawCircles() {
     Gdx.gl.glLineWidth(2f)
     draw(Line) {
-      //vision circle
-      
       color = safeZoneColor
       circle(PoisonGasWarningPosition, PoisonGasWarningRadius, 100)
       
@@ -590,6 +573,7 @@ class GLMap: InputAdapter(), ApplicationListener, GameListener {
     Gdx.gl.glLineWidth(1f)
   }
   
+  /*
   private fun drawGrid() {
     draw(Filled) {
       color = GRAY
@@ -600,6 +584,7 @@ class GLMap: InputAdapter(), ApplicationListener, GameListener {
 
     }
   }
+  */
 
   private fun ShapeRenderer.drawAPawn(typeLocation: EnumMap<Archetype, MutableList<renderInfo>>,
                                       selfX: Float, selfY: Float,
@@ -817,7 +802,6 @@ class GLMap: InputAdapter(), ApplicationListener, GameListener {
       query(name)
       if (completedPlayerInfo.containsKey(name)) {
         val info = completedPlayerInfo[name]!!
-        //val desc = "$name($numKills)\n${info.win}/${info.totalPlayed}\n${info.roundMostKill}-${info.killDeathRatio.d(2)}/${info.headshotKillRatio.d(2)}\n$teamNumber"
         val desc = "$teamNumber($numKills)\n${info.killDeathRatio.d(2)} / ${info.headshotKillRatio.d(2)}"
         for(i in -1..1)
           for(j in -1..1)
@@ -833,11 +817,6 @@ class GLMap: InputAdapter(), ApplicationListener, GameListener {
     
     /*
     val profileText = "${completedPlayerInfo.size}/${completedPlayerInfo.size + pendingPlayerInfo.size}"
-    layout.setText(largeFont, profileText)
-    for(i in -1..1)
-      for(j in -1..1)
-        largeFontShadow.draw(spriteBatch, profileText, windowWidth - layout.width + i, windowHeight - 10f + j)
-    largeFont.draw(spriteBatch, profileText, windowWidth - layout.width, windowHeight - 10f)
     */
   }
   
@@ -917,7 +896,7 @@ class GLMap: InputAdapter(), ApplicationListener, GameListener {
   
   fun ShapeRenderer.drawPlayer(pColor: Color?, actorInfo: renderInfo, drawSight: Boolean = true) {
     val zoom = camera.zoom
-    val backgroundRadius = (playerRadius + 2000f) * zoom
+    val backgroundRadius = (playerRadius + 1500f) * zoom
     val playerRadius = playerRadius * zoom
     val directionRadius = directionRadius * zoom
     
@@ -995,8 +974,6 @@ class GLMap: InputAdapter(), ApplicationListener, GameListener {
     espFontShadow.dispose()
     nameFont.dispose()
     nameFontShadow.dispose()
-    largeFont.dispose()
-    largeFontShadow.dispose()
     littleFont.dispose()
     littleFontShadow.dispose()
     compassFont.dispose()

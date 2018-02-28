@@ -11,8 +11,7 @@ const val runSpeed = 6.3 * 100 //6.3m/s
 const val unit = gridWidth / 8
 const val unit2 = unit / 10
 //1m=100
-const val playerRadius = 4000f
-const val vehicle1Width = 200f
+const val playerRadius = 3600f
 const val vehicle2Width = 400f
 const val vehicle4Width = 800f
 const val vehicle6Width = 1600f
@@ -21,15 +20,15 @@ const val airDropRadius = 4000f
 const val corpseRadius = 400f
 const val itemRadius = 300f
 const val visionRadius = mapWidth / 8
-const val fov = 90f
+const val fov = 60f
 
 const val aimLineWidth = 1000f
 const val aimLineRange = 50000f
 const val aimCircleRadius = 200f
 const val aimTimeThreshold = 1000
-const val attackLineDuration = 1000
-const val attackMeLineDuration = 10000
-const val pinRadius = 4000f
+const val attackLineDuration = 2000
+const val attackMeLineDuration = 20000
+const val pinRadius = 3000f
 
 val teamColor = Color(1f, 1f, 0f, 1f)  //yellow
 val safeDirectionColor = Color(0.22f, 0.52f, 0.95f, 0.3f)  //blue
@@ -63,7 +62,6 @@ val drinkItemColor = Color(0.20f, 0.63f, 0.20f, 0.99f)  //limeGreen
 
 val sightColor = Color(1f, 1f, 1f, 0.5f)
 
-val compassColor = Color(0f, 0.95f, 1f, 1f)  //Turquoise1
 val aimLineColor = Color(0f, 0f, 1f, 1f)
 val attackLineColor = Color(1.0f, 0f, 0f, 1f)
 val pinColor = Color(1f, 1f, 0f, 1f)
