@@ -1,4 +1,4 @@
-ckagepackage pubg.radar.struct
+package pubg.radar.struct
 
 import com.badlogic.gdx.math.Vector3
 import pubg.radar.struct.Archetype.*
