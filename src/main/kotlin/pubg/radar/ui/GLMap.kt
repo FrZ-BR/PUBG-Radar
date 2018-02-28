@@ -414,9 +414,9 @@ class GLMap: InputAdapter(), ApplicationListener, GameListener {
         hubFontShadow.draw(spriteBatch, "SECS", windowWidth - 345f, windowHeight - 29f)
         hubFont.draw(spriteBatch, "${TotalWarningDuration.toInt()-ElapsedWarningDuration.toInt()}", windowWidth - 370f - layout.width /2, windowHeight - 29f)
       } else {
-        spriteBatch.draw(hub_panel, windowWidth - 390f - 130f, windowHeight - 60f)
-        hubFontShadow.draw(spriteBatch, "SECS", windowWidth - 345f - 130f, windowHeight - 29f)
-        hubFont.draw(spriteBatch, "${TotalWarningDuration.toInt()-ElapsedWarningDuration.toInt()}", windowWidth - 370f - 130f - layout.width /2, windowHeight - 29f)
+        spriteBatch.draw(hub_panel, windowWidth - 390f + 130f, windowHeight - 60f)
+        hubFontShadow.draw(spriteBatch, "SECS", windowWidth - 345f + 130f, windowHeight - 29f)
+        hubFont.draw(spriteBatch, "${TotalWarningDuration.toInt()-ElapsedWarningDuration.toInt()}", windowWidth - 370f + 130f - layout.width /2, windowHeight - 29f)
       }
 
       // ITEM ESP FILTER PANEL
